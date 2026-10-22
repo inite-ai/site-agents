@@ -1,0 +1,102 @@
+name: Publish to npm
+
+# This repository is a read-only mirror: INITE's monorepo pushes the package
+# here on every change (its workflow mirror-site-agents.yml), and this
+# workflow is the one place @inite/site-agents is published from. Whenever
+# main carries a version npm does not have yet, it builds, tests, publishes
+# with npm provenance (signed by this run's OIDC token, which is why it runs
+# here and not in the private monorepo) and makes the GitHub Release v<version>.
+# Idempotent: a version npm already has is skipped, so a re-run or an
+# unrelated push does nothing. Never runs for pull requests.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the GitHub Release
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Before setup-node writes an .npmrc, so the lookup is anonymous.
+      - name: Is this version already on npm?
+        id: check
+        run: |
+          set -euo pipefail
+          if [ ! -f package.json ]; then
+            echo "::notice::No package here yet; nothing to publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          NAME="$(node -p "require('./package.json').name")"
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$(npm view "$NAME@$VERSION" version 2>/dev/null || true)" = "$VERSION" ]; then
+            echo "::notice::$NAME@$VERSION is already on npm; nothing to publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publishing $NAME@$VERSION"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require NPM_TOKEN
+        if: steps.check.outputs.publish == 'true'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN is not set. The organization secret NPM_TOKEN must include this repository in its selected repositories."
+            exit 1
+          fi
+
+      - if: steps.check.outputs.publish == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+
+      # npm 10 (Node 22's) fails resolving this package's peers ("reading
+      # 'edgesOut'"); npm 11 does not.
+      - if: steps.check.outputs.publish == 'true'
+        run: npm install -g npm@11.13.0
+      - if: steps.check.outputs.publish == 'true'
+        run: npm install --no-audit --no-fund --no-package-lock
+      - if: steps.check.outputs.publish == 'true'
+        run: npm run build
+      - if: steps.check.outputs.publish == 'true'
+        run: npm test
+
+      - name: Publish
+        if: steps.check.outputs.publish == 'true'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: GitHub Release
+        if: steps.check.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          set -euo pipefail
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "::notice::Release v$VERSION exists."
+            exit 0
+          fi
+          gh release create "v$VERSION" --target "$GITHUB_SHA" --title "@inite/site-agents $VERSION" \
+            --notes "Published to npm with provenance: https://www.npmjs.com/package/@inite/site-agents/v/$VERSION
+
+          \`npm install @inite/site-agents@$VERSION\`
+
+          Setup and every option: README.md. Docs for all platforms: https://github.com/inite-ai/inite-agents"
