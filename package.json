@@ -1,0 +1,84 @@
+{
+  "name": "@inite/site-agents",
+  "version": "0.2.1",
+  "description": "A Next.js site serves its INITE-confirmed facts to AI agents: llms.txt, .well-known cards, the robots.txt Content-Signal line and the head tags (WebMCP, links, JSON-LD), from one cached copy keyed by the site key.",
+  "license": "MIT",
+  "author": "INITE (https://inite.ai)",
+  "homepage": "https://inite.ai/en/mcp#site-api",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inite-ai/site-agents.git"
+  },
+  "bugs": {
+    "url": "https://github.com/inite-ai/inite-agents/issues"
+  },
+  "keywords": [
+    "nextjs",
+    "llms.txt",
+    "mcp",
+    "a2a",
+    "webmcp",
+    "ai-agents"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./llms-txt": {
+      "types": "./dist/next/llms-txt.d.ts",
+      "import": "./dist/next/llms-txt.js",
+      "default": "./dist/next/llms-txt.js"
+    },
+    "./well-known": {
+      "types": "./dist/next/well-known.d.ts",
+      "import": "./dist/next/well-known.js",
+      "default": "./dist/next/well-known.js"
+    },
+    "./robots-txt": {
+      "types": "./dist/next/robots-txt.d.ts",
+      "import": "./dist/next/robots-txt.js",
+      "default": "./dist/next/robots-txt.js"
+    },
+    "./head": {
+      "types": "./dist/next/head.d.ts",
+      "import": "./dist/next/head.js",
+      "default": "./dist/next/head.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {},
+  "peerDependencies": {
+    "next": "^15 || ^16",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
