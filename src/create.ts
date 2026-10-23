@@ -15,6 +15,7 @@ import { isRootPath, type RootPath } from "./manifest";
 import { Visits } from "./ping";
 import { renderRobots, signalLines, withContentSignal, type RobotsObject } from "./robots";
 import { SiteSync, type CopyFile, type Snapshot } from "./sync";
+import { createContentSync, type ContentSync } from "./records";
 
 type Params<T> = { params: Promise<T> | T };
 export type RouteHandler = (req: Request) => Promise<Response>;
@@ -24,6 +25,8 @@ export type RobotsBase = string | RobotsObject | (() => string | RobotsObject | 
 export interface SiteAgents {
   /** app/llms.txt/route.ts: `export const { GET, HEAD } = agents.llmsTxt` */
   llmsTxt: { GET: RouteHandler; HEAD: RouteHandler };
+  /** app/llms-full.txt/route.ts: the facts, then every page, article, event and published product INITE holds for the site. */
+  llmsFullTxt: { GET: RouteHandler; HEAD: RouteHandler };
   /** app/.well-known/[file]/route.ts: agent-card.json, mcp.json, api-catalog. */
   wellKnown: { GET: WellKnownHandler; HEAD: WellKnownHandler };
   /** app/robots.txt/route.ts: your rules (the object app/robots.ts returned, or text) with the Content-Signal line added. */
@@ -83,6 +86,8 @@ interface Instance {
   sync: SiteSync;
   visits: Visits;
   robotsServed: boolean;
+  /** The app's own content, sent to INITE when `content` is passed (records.ts). */
+  content?: ContentSync;
 }
 
 const REGISTRY = Symbol.for("@inite/site-agents/instances");
@@ -106,6 +111,11 @@ function instanceFor(opts: SiteAgentsOptions): Instance {
 export function createSiteAgents(opts: SiteAgentsOptions): SiteAgents {
   const inst = instanceFor(opts);
   const { cfg, sync, visits } = inst;
+  // The app passed its content: a run at most every `contentEveryMinutes`, after a response, never in its way.
+  const content = opts.content && cfg.key ? (inst.content ??= createContentSync(opts.content, { ...opts, everyMinutes: opts.contentEveryMinutes })) : null;
+  const sendContent = () => {
+    if (content) void later(async () => void (await content.maybeSync()));
+  };
 
   const servedPaths = (snap: Snapshot): string[] => {
     const out: string[] = [];
@@ -115,6 +125,7 @@ export function createSiteAgents(opts: SiteAgentsOptions): SiteAgents {
   };
 
   const counted = (req: Request, path: string, snap: Snapshot) => {
+    sendContent();
     visits.count(path, req.headers.get("user-agent"));
     if (visits.due()) void later(() => visits.maybePing(servedPaths(snap)));
   };
@@ -131,6 +142,7 @@ export function createSiteAgents(opts: SiteAgentsOptions): SiteAgents {
   };
 
   const llms: RouteHandler = (req) => fileAt(req, "/llms.txt");
+  const llmsFull: RouteHandler = (req) => fileAt(req, "/llms-full.txt");
   const wellKnown: WellKnownHandler = async (req, ctx) => {
     const { file } = await ctx.params;
     const path = `/.well-known/${file}`;
@@ -148,6 +160,7 @@ export function createSiteAgents(opts: SiteAgentsOptions): SiteAgents {
     if (!cfg.features.head && !cfg.features.webmcp && !cfg.features.jsonLd) return null;
     const snap = await sync.snapshot();
     if (snap.state !== "ok") return null;
+    sendContent();
     const h = snap.copy.head;
     return {
       script: cfg.features.webmcp ? h.script : null,
@@ -158,6 +171,7 @@ export function createSiteAgents(opts: SiteAgentsOptions): SiteAgents {
 
   return {
     llmsTxt: { GET: llms, HEAD: llms },
+    llmsFullTxt: { GET: llmsFull, HEAD: llmsFull },
     wellKnown: { GET: wellKnown, HEAD: wellKnown },
     robotsRoute(base) {
       return {

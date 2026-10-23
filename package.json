@@ -1,7 +1,7 @@
 {
   "name": "@inite/site-agents",
-  "version": "0.2.1",
-  "description": "A Next.js site serves its INITE-confirmed facts to AI agents: llms.txt, .well-known cards, the robots.txt Content-Signal line and the head tags (WebMCP, links, JSON-LD), from one cached copy keyed by the site key.",
+  "version": "0.3.0",
+  "description": "A Next.js site serves its INITE-confirmed facts to AI agents: llms.txt and llms-full.txt, .well-known cards, the robots.txt Content-Signal line and the head tags (WebMCP, links, JSON-LD), from one cached copy keyed by the site key. It can also send the site's own pages, products and events.",
   "license": "MIT",
   "author": "INITE (https://inite.ai)",
   "homepage": "https://inite.ai/en/mcp#site-api",
@@ -34,6 +34,11 @@
       "types": "./dist/next/llms-txt.d.ts",
       "import": "./dist/next/llms-txt.js",
       "default": "./dist/next/llms-txt.js"
+    },
+    "./llms-full-txt": {
+      "types": "./dist/next/llms-full-txt.d.ts",
+      "import": "./dist/next/llms-full-txt.js",
+      "default": "./dist/next/llms-full-txt.js"
     },
     "./well-known": {
       "types": "./dist/next/well-known.d.ts",

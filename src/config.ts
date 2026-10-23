@@ -47,6 +47,15 @@ export interface SiteAgentsOptions {
   cache?: "next" | "memory";
   /** Hours between pings from one process. Default 24. */
   pingEveryHours?: number;
+  /**
+   * The site's own pages, products and events, for INITE to list in llms.txt
+   * and llms-full.txt and, once the owner publishes the catalogue, to serve
+   * through the MCP (records.ts). Passing a group is sending it; leave out
+   * what should not leave the site. Sent at most every `contentEveryMinutes`
+   * (default 60), after a response.
+   */
+  content?: import("./records").ContentProvider;
+  contentEveryMinutes?: number;
   /** For tests: the fetch to use. */
   fetch?: typeof fetch;
   /** For tests: the clock. */

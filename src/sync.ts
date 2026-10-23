@@ -254,7 +254,7 @@ export class SiteSync {
 }
 
 /** Kept in step with package.json by a test. */
-export const PACKAGE_VERSION = "0.2.1";
+export const PACKAGE_VERSION = "0.3.0";
 
 function dropped(res: Answer): Snapshot {
   let error = "refused";

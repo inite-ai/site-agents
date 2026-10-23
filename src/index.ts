@@ -13,3 +13,4 @@ export { renderRobots, signalLines, withContentSignal, type RobotsObject, type R
 export { headElements, inScript, type HeadParts } from "./head";
 export { PACKAGE_VERSION, type Copy, type CopyFile, type Snapshot } from "./sync";
 export { createContentQueue, parseQueueItem, type ContentQueue, type ContentFailure, type ContentSource, type QueueItem, type QueueResult, type PublishedResult, type FailedResult } from "./content";
+export { createContentSync, RECORDS_CAP, RECORDS_PAGE, type ContentProvider, type ContentSync, type ContentSyncResult, type GroupResult, type PageItem, type ProductItem, type EventItem } from "./records";

@@ -2,7 +2,7 @@
 
 A Next.js site serves the facts its company confirmed in INITE to AI agents, from its own domain:
 
-- `/llms.txt` and `/.well-known/agent-card.json`, `/.well-known/mcp.json`, `/.well-known/api-catalog`, byte for byte what INITE publishes for the confirmed version, with the same content types;
+- `/llms.txt`, `/llms-full.txt` and `/.well-known/agent-card.json`, `/.well-known/mcp.json`, `/.well-known/api-catalog`, byte for byte what INITE publishes for the confirmed version, with the same content types;
 - the `Content-Signal` line for `robots.txt`;
 - in the page's head: the WebMCP script (read-only tools for an agent in the browser), `<link>` tags to the company's MCP server, llms.txt and cards, and the JSON-LD of the facts.
 
@@ -160,6 +160,38 @@ export async function GET() {
 - As everywhere in this package, only the configured origin is called with the key: the `report` URLs an item carries are for reading, and `published()`/`failed()` build their own. Redirects are not followed.
 
 Instead of polling, a site can take the same article by webhook: the event `content.approved` posts it, signed, the moment the owner approves (see https://inite.ai/en/mcp#site-api). It still reports the outcome with `published()` or `failed()`.
+
+## Your pages, products and events
+
+INITE can list your site's own pages, articles and upcoming events in `llms.txt` and `llms-full.txt`, and serve your products to agents through your MCP server (tools `products` and `product`) once the company's owner turns on "Publish my catalogue" in the cabinet. Nothing is sent unless you pass it: pass only the groups you mean to send, and only what anyone can already read on your site.
+
+```ts
+// app/llms-full.txt/route.ts
+export { GET, HEAD } from "@inite/site-agents/llms-full-txt";
+```
+
+```ts
+// lib/site-agents.ts
+import { createSiteAgents, optionsFromEnv } from "@inite/site-agents";
+import { getPages, getProducts } from "./cms";
+
+export const agents = createSiteAgents({
+  ...optionsFromEnv(),
+  content: {
+    content: async () => (await getPages()).map((p) => ({ id: p.id, type: "page", title: p.title, url: p.url, excerpt: p.summary, modified: p.updatedAt })),
+    products: async () => (await getProducts()).map((p) => ({ id: p.id, name: p.name, url: p.url, price: p.price, currency: "EUR", stock: p.inStock ? "instock" : "outofstock", sku: p.sku })),
+  },
+});
+```
+
+With `content` set, the package sends at most once an hour (`contentEveryMinutes`), after a response: only the items that changed since the process last sent them, a hundred at a time, then the ids still there, so INITE drops what you removed. A group passed as `null` (`products: null`) makes INITE delete everything it holds of it. To send from a cron route or a CMS webhook instead, call it yourself:
+
+```ts
+import { createContentSync } from "@inite/site-agents";
+const result = await createContentSync({ events: () => upcomingEvents() }).sync();
+```
+
+INITE holds up to 2,000 pages and posts, 2,000 products and 200 events per site. The fields, the caps and the answers: https://inite.ai/en/mcp#site-api (POST /api/site/v1/records).
 
 ## Source, releases, issues
 

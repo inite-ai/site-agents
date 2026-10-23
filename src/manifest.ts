@@ -2,17 +2,17 @@
  * The manifest (GET /api/site/v1/manifest) reduced to what this package
  * serves, checked the way the WordPress plugin checks it
  * (includes/class-inite-agents-sync.php, `manifest()`): only known files, only
- * the four root paths, a content type that cannot end a header line, and
+ * the five root paths, a content type that cannot end a header line, and
  * head addresses that are http(s). Anything else in the body is ignored,
  * including the files' own `url`: a file is always asked for at the
  * configured origin.
  */
 
-export const KNOWN_FILES = ["llms.txt", "agent-card.json", "mcp.json", "api-catalog", "robots-signal", "jsonld"] as const;
+export const KNOWN_FILES = ["llms.txt", "llms-full.txt", "agent-card.json", "mcp.json", "api-catalog", "robots-signal", "jsonld"] as const;
 export type FileName = (typeof KNOWN_FILES)[number];
 
 /** The root paths a file may be served at. Nothing else is ever claimed. */
-export const ROOT_PATHS = ["/llms.txt", "/.well-known/agent-card.json", "/.well-known/mcp.json", "/.well-known/api-catalog"] as const;
+export const ROOT_PATHS = ["/llms.txt", "/llms-full.txt", "/.well-known/agent-card.json", "/.well-known/mcp.json", "/.well-known/api-catalog"] as const;
 export type RootPath = (typeof ROOT_PATHS)[number];
 
 export interface HeadLink {
